@@ -108,4 +108,21 @@ public class EmployeeServiceImpl implements EmployeeService {
         List<Employee> records=page.getResult();
         return new PageResult(total,records);
     }
+
+    /***
+     * 启用禁用员工账号
+     * @param status
+     * @param id
+     */
+    public void  startOrStop(Integer status,Long id){
+        //期望执行的sql为：update employee set status=? where id=? ，但是为了修改的通用性将update语句定义为动态的
+        //不只是修改status字段，而是根据传入的参数不同可以修改多个字段，增强update语句的通用性
+        //创建一个Employee实体对象，并传入两个属性值
+        Employee employee = Employee.builder()
+                .status(status)
+                .id(id)
+                .build();
+        //调用mapper层的update方法进行动态更新
+        employeeMapper.update(employee);
+    }
 }

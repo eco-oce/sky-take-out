@@ -105,4 +105,19 @@ public class EmployeeController {
         //进一步封装
         return Result.success(pageResult);
     }
+
+    /***
+     * 启用禁用员工账号
+     * @param status
+     * @param id
+     * @return
+     * 泛型并不是强制的，可以写也可以不写，对于查询类的操作因为需要返回data数据所以需要加上泛型，对于非查询类，只需返回code而data往往为空，因此无需定义泛型
+     */
+    @PostMapping("/status/{status}")
+    @ApiOperation("启用禁用员工账号")
+    public Result startOrStop(@PathVariable Integer status,Long id){
+        log.info("启用禁用员工账号:{},{}",status,id);
+        employeeService.startOrStop(status,id);
+        return Result.success();
+    }
 }
