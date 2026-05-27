@@ -120,4 +120,32 @@ public class EmployeeController {
         employeeService.startOrStop(status,id);
         return Result.success();
     }
+
+    /***
+     * 根据id查询员工信息
+     * @param id
+     * @return
+     */
+    @GetMapping("/{id}")
+    @ApiOperation("根据id查询员工信息")
+    //此处后端响应给前端的data字段对应Employee实体类，因此此处的泛型为Employee对象
+    public Result<Employee> getById(@PathVariable Long id) {
+        Employee employee=employeeService.getById(id);
+        return Result.success(employee);
+    }
+
+
+    /***
+     * 编辑员工信息
+     * @param employeeDTO
+     * @return
+     */
+    @PutMapping
+    @ApiOperation("编辑员工信息")
+    //此处并不是查询性的操作，因此可以不指定泛型
+    public Result update(@RequestBody EmployeeDTO employeeDTO){
+        log.info("编辑员工信息:{}",employeeDTO);
+        employeeService.update(employeeDTO);
+        return  Result.success();
+    }
 }
