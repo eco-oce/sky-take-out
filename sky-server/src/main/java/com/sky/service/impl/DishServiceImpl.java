@@ -116,4 +116,52 @@ public class DishServiceImpl implements DishService {
         dishFlavorMapper.deleteByDishIds(ids);
 
     }
+
+    /***
+     * 根据id查询菜品和对应的口味数据
+     * 此处需要查询菜品表和口味表，最终将数据封装到VO中
+     * @param id
+     * @return
+     */
+    public DishVO getByIdWithFlavor(Long id) {
+        //根据id查询菜品数据,得到dish对象
+        Dish dish = dishMapper.getById(id);
+        //根据菜品id查询口味数据
+        List<DishFlavor> dishFlavors=dishFlavorMapper.getByDishId(id);
+        //将查询到的数据封装到VO
+        DishVO dishVO = new DishVO();
+        BeanUtils.copyProperties(dish,dishVO);
+        dishVO.setFlavors(dishFlavors);//额外设置口味数据
+
+        return dishVO;
+    }
+
+    /***
+     * 根据id修改菜品基本信息和对应的口味信息
+     * @param dishDTO
+     */
+    @Transactional
+    public void updateWithFlavor(DishDTO dishDTO) {
+        Dish dish = new Dish();
+        BeanUtils.copyProperties(dishDTO,dish);
+
+        //修改菜品表基本信息，不包含口味信息，使用dish对象更为合理
+        dishMapper.update(dish);
+
+        //删除原有的口味数据
+        dishFlavorMapper.deleteByDishId(dish.getId());
+
+        //重新插入口味数据
+        List<DishFlavor> flavors = dishDTO.getFlavors();
+        if (flavors!=null&&flavors.size()>0){
+            //遍历集合，为每个DishFlavor的dishId属性赋值
+            flavors.forEach(dishFlavor->{
+                dishFlavor.setDishId(dishDTO.getId());
+            });
+            //向口味表插入n条数据(一个菜品可能对应多个口味)
+            //无需遍历集合逐条插入数据，而是通过传入集合对象的方式批量插入
+            dishFlavorMapper.insertBatch(flavors);
+        }
+
+    }
 }
