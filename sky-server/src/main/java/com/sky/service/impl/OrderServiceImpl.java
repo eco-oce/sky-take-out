@@ -21,6 +21,7 @@ import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import com.sky.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,6 +59,8 @@ public class OrderServiceImpl implements OrderService {
     private String shopAddress;
     @Value("${sky.baidu.ak}")
     private String ak;
+    @Autowired
+    private WebSocketServer  webSocketServer;
 
     /***
      * 用户下单
@@ -169,6 +172,17 @@ public class OrderServiceImpl implements OrderService {
         log.info("调用updateStatus，用于替换微信支付更新数据库状态的问题");
         orderMapper.updateStatus(OrderStatus, OrderPaidStatus, check_out_time, orderNumber);
 
+
+
+        Map map =new HashMap();
+        map.put ("type ",1);
+        //获取订单id
+        Orders orders =orderMapper.getByNumberAndUserId (orderNumber,userId );
+        map.put ("orderId ",orders.getId ());
+        map.put ("orderNumber ","订单号"+orderNumber );
+        //通过Websocket 实现来单提醒
+        webSocketServer.sendToAllClient (JSON.toJSONString(map ));
+
         return vo;
     }
 
@@ -191,10 +205,11 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderMapper.update(orders);
+
     }
 
     /***
-     * 历史订单查询
+     * 历史订单查询用户端订单分页查询
      * @param page
      * @param pageSize
      * @param status
@@ -367,7 +382,7 @@ public class OrderServiceImpl implements OrderService {
     public void confirm(OrdersConfirmDTO ordersConfirmDTO) {
         Orders orders = Orders.builder()
                         .id(ordersConfirmDTO.getId())
-                        .status(ordersConfirmDTO.getStatus())
+                        .status(Orders.CONFIRMED)
                         .build();
         orderMapper.update(orders);
     }
@@ -471,6 +486,27 @@ public class OrderServiceImpl implements OrderService {
         orders.setDeliveryTime(LocalDateTime.now());
 
         orderMapper.update(orders);
+    }
+
+    /**
+     * 客户催单
+     * @param id
+     */
+    public void reminder(Long id) {
+        // 根据id查询订单
+        Orders ordersDB = orderMapper.getById(id);
+        // 校验订单是否存在，并且状态为4
+        if(ordersDB==null){
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Map map=new HashMap();
+        map.put("type",2);  //1表示来单提醒，2表示客户催单
+        map.put("orderId",id);
+        map.put("content","订单号："+ordersDB.getNumber());
+
+        //通过websocket向客户端浏览器推送消息
+        webSocketServer.sendToAllClient(JSON.toJSONString(map));
     }
 
     /**
